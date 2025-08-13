@@ -7,3 +7,4 @@ motor
 python-dotenv
 langdetect
 sentencepiece
+transformers
