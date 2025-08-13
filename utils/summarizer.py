@@ -1,23 +1,24 @@
-# utils/summarizer.py
 import re
 from langdetect import detect
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
 
-MODEL_ID = "csebuetnlp/mT5_multilingual_XLSum"
+MODEL_ID = "google/mt5-small"
 SENT_RE = re.compile(r'(?<=[\.\!\?])\s+')
 
-# --- Chargement modèle/tokenizer ---
-# use_fast=False => évite l’exigence protobuf pour T5
-tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, use_fast=False)
-model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_ID)
+# Variables globales pour lazy loading
+tokenizer = None
+model = None
+summarizer_pipe = None
 
-# Forcer l’utilisation du CPU (device=-1) pour éviter erreurs sur Render
-summarizer_pipe = pipeline(
-    "summarization",
-    model=model,
-    tokenizer=tokenizer,
-    device=-1
-)
+def load_model():
+    """Charge le modèle uniquement si pas déjà chargé."""
+    global tokenizer, model, summarizer_pipe
+    if summarizer_pipe is None:
+        print("🔄 Chargement du modèle...")
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, use_fast=False)
+        model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_ID)
+        summarizer_pipe = pipeline("summarization", model=model, tokenizer=tokenizer)
+        print("✅ Modèle chargé.")
 
 def smart_chunks(text: str, max_chars=1800):
     text = re.sub(r'\s+', ' ', text).strip()
@@ -43,6 +44,10 @@ def postprocess(summary: str, lang="fr"):
 def summarize_text(text: str, max_length=150, min_length=60):
     if not text or not text.strip():
         return ""
+    
+    # Chargement du modèle uniquement si nécessaire
+    load_model()
+
     try:
         lang = detect(text[:1000])
     except Exception:
