@@ -8,4 +8,5 @@ python-dotenv
 langdetect
 sentencepiece
 transformers
-torch==2.2.2
+torch==2.5.1
+
