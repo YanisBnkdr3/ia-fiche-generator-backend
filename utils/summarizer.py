@@ -3,25 +3,23 @@ import re
 from langdetect import detect
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
 
-# Modèle plus léger
-MODEL_ID = "google/mt5-small"  # ou "t5-small" si seulement FR/EN
+MODEL_ID = "csebuetnlp/mT5_multilingual_XLSum"
 SENT_RE = re.compile(r'(?<=[\.\!\?])\s+')
 
 # --- Chargement modèle/tokenizer ---
+# use_fast=False => évite l’exigence protobuf pour T5
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, use_fast=False)
-model = AutoModelForSeq2SeqLM.from_pretrained(
-    MODEL_ID,
-    device_map="auto",
-    low_cpu_mem_usage=True
-)
+model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_ID)
+
+# Forcer l’utilisation du CPU (device=-1) pour éviter erreurs sur Render
 summarizer_pipe = pipeline(
     "summarization",
     model=model,
     tokenizer=tokenizer,
-    device=-1  # CPU
+    device=-1
 )
 
-def smart_chunks(text: str, max_chars=1200):
+def smart_chunks(text: str, max_chars=1800):
     text = re.sub(r'\s+', ' ', text).strip()
     parts, buf = [], ""
     for sent in SENT_RE.split(text):
@@ -42,7 +40,7 @@ def postprocess(summary: str, lang="fr"):
         sents = [s for s in sents if not re.search(r'\b(the|and|is|was)\b', s, re.I)]
     return " ".join(sents)
 
-def summarize_text(text: str, max_length=120, min_length=40):
+def summarize_text(text: str, max_length=150, min_length=60):
     if not text or not text.strip():
         return ""
     try:
@@ -50,7 +48,7 @@ def summarize_text(text: str, max_length=120, min_length=40):
     except Exception:
         lang = "fr"
 
-    chunks = smart_chunks(text, max_chars=1200)
+    chunks = smart_chunks(text, max_chars=1800)
     outs = []
     for ch in chunks:
         try:
