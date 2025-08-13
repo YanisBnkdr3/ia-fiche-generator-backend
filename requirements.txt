@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+pdfplumber
+python-docx
+motor
+python-dotenv
+langdetect
+sentencepiece
