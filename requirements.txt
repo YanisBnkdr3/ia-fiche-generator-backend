@@ -9,3 +9,4 @@ numpy
 pdfplumber
 python-docx
 motor 
+#jchjchdkjc
