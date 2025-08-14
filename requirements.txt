@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+python-dotenv
 python-multipart
 pymongo
 nltk
@@ -8,6 +9,4 @@ numpy
 pdfplumber
 python-docx
 motor 
-python-dotenv
-
 #jchjchdkjc
