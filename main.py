@@ -1,4 +1,3 @@
-# main.py
 import os
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, Query, Depends, Body
@@ -7,7 +6,6 @@ from bson import ObjectId
 
 from db import connect_to_mongo, close_mongo_connection, get_db
 from utils.extract_text import extract_text_from_pdf, extract_text_from_docx, extract_text_from_txt
-from utils.summarizer import summarize_text
 from utils.keywords import extract_keywords
 from utils.quiz import generate_quiz
 from utils.serializers import serialize_fiche, str_id
@@ -33,7 +31,7 @@ async def startup_event():
 async def shutdown_event():
     await close_mongo_connection()
 
-@app.get("/")  # pour éviter le 404 sur /
+@app.get("/")
 async def root():
     return {"status": "ok"}
 
@@ -59,7 +57,6 @@ async def upload_file(
     if not text.strip():
         return {"error": "Le fichier est vide ou non lisible"}
 
-    summary = summarize_text(text)
     keywords = extract_keywords(text)
     quiz = generate_quiz(text, keywords, num_questions=5)
 
@@ -75,7 +72,6 @@ async def upload_file(
         "lang": "fr",
         "status": "processed",
         "extracted_text": text,
-        "summary": summary,
         "keywords": keywords,
         "stats": {"chars": len(text), "words": len(text.split())},
         "createdAt": datetime.utcnow(),
@@ -98,7 +94,6 @@ async def upload_file(
         "ficheId": str_id(fiche_id),
         "quizId": str_id(quiz_res.inserted_id),
         "filename": file.filename,
-        "summary": summary,
         "keywords": keywords,
         "quiz_preview": quiz[:2],
         "extracted_text": text[:800],
@@ -133,20 +128,8 @@ async def get_quiz_by_fiche(
 async def submit_quiz_result(
     payload: dict = Body(...),
     user_id: str = Query(default="test-user-1"),
-    db = Depends(get_db),  # ✅ correction: injection de la DB
+    db = Depends(get_db),
 ):
-    """
-    payload:
-    {
-      "quiz_id": "<id>",
-      "fiche_id": "<id>",
-      "answers": [
-        {"q_index": 0, "selected_index": 2},       # MCQ
-        {"q_index": 1, "selected_bool": true}      # True/False
-      ],
-      "startedAt": "2025-08-11T18:05:00Z"
-    }
-    """
     quiz_id = payload.get("quiz_id")
     fiche_id = payload.get("fiche_id")
     answers = payload.get("answers", [])
@@ -168,10 +151,7 @@ async def submit_quiz_result(
         if qi is None or qi < 0 or qi >= len(questions):
             continue
         q = questions[qi]
-        entry = {
-            "q_index": qi,
-            "type": q["type"],
-        }
+        entry = {"q_index": qi, "type": q["type"]}
 
         if q["type"] == "mcq":
             selected = a.get("selected_index")
@@ -205,12 +185,11 @@ async def submit_quiz_result(
         "user_id": user_id,
         "quiz_id": ObjectId(quiz_id),
         "fiche_id": ObjectId(fiche_id),
-        "answers": report,                 # on stocke le détail corrigé
+        "answers": report,
         "score": score,
         "total": len(questions),
         "startedAt": startedAt or datetime.utcnow(),
         "finishedAt": datetime.utcnow(),
-        "duration_ms": None
     }
     res = await db.quiz_results.insert_one(result_doc)
 
@@ -218,7 +197,7 @@ async def submit_quiz_result(
         "resultId": str(res.inserted_id),
         "score": score,
         "total": len(questions),
-        "report": report                   # on renvoie tout le détail à l’UI
+        "report": report
     }
 
 @app.get("/results/me")
