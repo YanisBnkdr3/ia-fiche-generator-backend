@@ -2,7 +2,6 @@ fastapi
 uvicorn
 python-multipart
 pymongo
-bson
 nltk
 scikit-learn
 numpy
