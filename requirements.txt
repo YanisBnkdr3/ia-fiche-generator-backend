@@ -8,4 +8,6 @@ numpy
 pdfplumber
 python-docx
 motor 
+python-dotenv
+
 #jchjchdkjc
